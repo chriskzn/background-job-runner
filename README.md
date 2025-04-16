@@ -59,3 +59,20 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# Custom Background Job Runner
+
+## Usage
+
+### Run a Job
+To run a background job from the command line:
+
+```bash
+php run-job.php JobClass allowedMethod1 "param1,param2"
+```
+
+This is the command I used to run a simple test from the root of the project folder
+
+```bash
+php public/run-job.php App\Jobs\JobClassName allowedMethod1 "test1,test2"
+```
