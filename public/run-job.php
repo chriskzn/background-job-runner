@@ -32,6 +32,14 @@ if ($argc < 3) {
     die("Usage: php run-job.php ClassName methodName \"param1,param2\"\n");
 }
 
+// Retrieve delay from arguments (if provided)
+$delay = isset($argv[4]) ? (int)$argv[4] : 0; // Fourth argument for delay
+
+if ($delay > 0) {
+    sleep($delay); // Delayed execution
+}
+
+
 // Retrieve class and method from arguments
 $className = $argv[1] ?? null;
 $methodName = $argv[2] ?? null;
@@ -68,30 +76,58 @@ if (!isset($config[$className]) || !in_array($methodName, $config[$className])) 
 //     echo "The job $className::$methodName is not allowed.\n";
 // }
 
+// Function to get a sorted job queue based on priority
+// function getJobQueueSortedByPriority() {
+//     // This function should return an array of job objects.
+//     // For example: each job object should have `class`, `method`, and `priority` properties.
+
+//     // You can implement your job fetching logic here.
+//     $jobs = [
+//         // Example job objects with dummy data
+//         (object)['class' => 'JobA', 'method' => 'handle', 'priority' => 1],
+//         (object)['class' => 'JobB', 'method' => 'handle', 'priority' => 3],
+//         (object)['class' => 'JobC', 'method' => 'handle', 'priority' => 2]
+//     ];
+
+//     return $jobs;
+// }
+
+// $jobQueue = getJobQueueSortedByPriority();
+
+// // Sort jobs by priority
+// usort($jobQueue, function ($a, $b) {
+//     return $b->priority <=> $a->priority; // Higher priority first
+// });
+
 $attempts = 0;
 $maxAttempts = config('background-jobs.retry_attempts');
 
-do {
-    try {
-        // Instantiate the job class and call the method
-        $reflectionClass = new ReflectionClass($className);
-        $params = array_map('trim', $params);
-        $jobInstance = $reflectionClass->newInstance();
-        $jobInstance->$methodName(...$params);
-        logJob($className, $methodName, 'success');
-        break; // Job succeeded
-    } catch (\Exception $e) {
-        // Handle exceptions
-        $attempts++;
-        logJob($className, $methodName, 'failed: ' . $e->getMessage());
-        logError(date('Y-m-d H:i:s') . " | Error: " . $e->getMessage() . "\n");
+// foreach ($jobQueue as $job) {
+//     $className = $job->class;
+//     $methodName = $job->method;
 
-        if ($attempts >= $maxAttempts) {
-            break;
+    do {
+        try {
+            // Instantiate the job class and call the method
+            $reflectionClass = new ReflectionClass($className);
+            $params = array_map('trim', $params);
+            $jobInstance = $reflectionClass->newInstance();
+            $jobInstance->$methodName(...$params);
+            logJob($className, $methodName, 'success');
+            break; // Job succeeded
+        } catch (\Exception $e) {
+            // Handle exceptions
+            $attempts++;
+            logJob($className, $methodName, 'failed: ' . $e->getMessage());
+            logError(date('Y-m-d H:i:s') . " | Error: " . $e->getMessage() . "\n");
+
+            if ($attempts >= $maxAttempts) {
+                break;
+            }
+
+            sleep(config('background-jobs.retry_delay'));
         }
-
-        sleep(config('background-jobs.retry_delay'));
-    }
-} while ($attempts < $maxAttempts);
+    } while ($attempts < $maxAttempts);
+//}
 
 ?>
